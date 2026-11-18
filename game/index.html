@@ -1,19 +1,63 @@
 <!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Block Dodger</title>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Solano Heat: Golden Hour II</title>
 <style>
-  html, body { margin: 0; height: 100%; overflow: hidden; background: #11141b; }
-  #game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
-  /* Read aloud, never shown: the status line screen readers announce. */
-  #status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-</style>
-</head>
-<body>
-<canvas id="game" aria-label="Block Dodger: move the paddle left and right to dodge falling blocks and catch coins"></canvas>
-<p id="status" role="status" aria-live="polite"></p>
-<script type="module" src="./src/main.js"></script>
-</body>
-</html>
+html,body{margin:0;height:100%;overflow:hidden;background:#1a0f14;font-family:system-ui,sans-serif;color:#fff}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block}
+.panel{background:rgba(10,12,20,.82);border:1px solid rgba(255,210,63,.5);border-radius:10px;padding:10px 14px}
+#hud{position:fixed;left:14px;top:12px;z-index:5;pointer-events:none}
+#hud-cash{font-size:26px;font-weight:800;color:#7dff8a}#hud-stars{font-size:22px;letter-spacing:2px}
+#healthwrap{width:180px;height:10px;background:#333;border-radius:5px;margin:6px 0}#hud-health{height:100%;background:#e74c3c;border-radius:5px}
+#hud-objective{position:fixed;top:12px;left:50%;transform:translateX(-50%);max-width:620px;text-align:center;z-index:5;font-size:15px}
+#hud-speed{position:fixed;right:18px;bottom:190px;font-size:22px;font-weight:700;z-index:5;text-shadow:0 2px 6px #000}
+#hud-weapon{font-size:13px;color:#ffe9a8}#hud-conches{font-size:12px;color:#ddd}
+#minimap{position:fixed;right:14px;bottom:14px;width:190px;height:150px;border:2px solid rgba(255,255,255,.6);border-radius:8px;z-index:5;background:#20303a}
+#dialogue{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);width:min(640px,90vw);z-index:6;display:none}
+#dlg-who{color:#ffd23f;font-weight:800;margin-bottom:4px}
+#toast{position:fixed;top:76px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.85);padding:10px 18px;border-radius:20px;z-index:7;opacity:0;transition:opacity .3s;font-weight:700}
+#hud-timer{position:fixed;top:64px;left:50%;transform:translateX(-50%);z-index:5;display:none;text-align:center}#hud-timerbar-wrap{width:280px;height:8px;background:#333;border-radius:4px}#hud-timerbar{height:100%;background:#b26bff;border-radius:4px}
+.screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;background:radial-gradient(circle at 50% 35%,rgba(255,140,40,.35),rgba(10,5,15,.92) 65%);z-index:10;text-align:center;padding:20px}
+.screen h1{font-size:52px;margin:0;color:#ffd23f;text-shadow:0 4px 0 #b33a2b,0 8px 24px #000}.screen h2{color:#ffb3a0;font-weight:500}
+button.btn{background:#ffd23f;color:#221;border:0;padding:13px 28px;font-size:18px;font-weight:800;border-radius:8px;cursor:pointer;margin:6px}button.btn:hover{background:#ffe27a}
+button.btn2{background:#2c3e50;color:#fff;border:1px solid #888;padding:11px 22px;font-size:15px;border-radius:8px;cursor:pointer;margin:6px}
+#fanfare{position:fixed;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;background:rgba(20,10,0,.55);z-index:9;text-align:center}
+#fanfare h1{font-size:44px;color:#ffd23f;text-shadow:0 4px 18px #000}
+#garage{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.55);z-index:11}
+#garage .card{background:#141a24;border:2px solid #ff9f1a;border-radius:14px;padding:22px;max-width:500px;width:92vw}
+#respray-row{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.small{font-size:13px;color:#ccc;line-height:1.5}.legend{text-align:left;max-width:520px}
+kbd{background:#333;padding:1px 6px;border-radius:4px}
+</style></head><body>
+<canvas id="c"></canvas>
+<div id="hud" class="panel"><div id="hud-cash">$0</div><div id="hud-stars">☆☆☆☆☆</div><div id="healthwrap"><div id="hud-health"></div></div><div id="hud-weapon">FISTS</div><div id="hud-conches"></div></div>
+<div id="hud-objective" class="panel"></div>
+<div id="hud-timer"><div id="hud-timertext"></div><div id="hud-timerbar-wrap"><div id="hud-timerbar"></div></div></div>
+<div id="hud-speed"></div><canvas id="minimap" width="190" height="150"></canvas>
+<div id="dialogue" class="panel"><div id="dlg-who"></div><div id="dlg-text"></div></div>
+<div id="toast"></div>
+<div id="fanfare"><h1 id="fanfare-title"></h1><div id="fanfare-sub" style="font-size:20px"></div></div>
+
+<div id="start" class="screen"><h1>SOLANO HEAT</h1><div style="font-size:22px;color:#ffd23f;letter-spacing:4px">GOLDEN HOUR II</div>
+<h2>Juno Vale runs Port Solano at sunset — courier jobs, marina scores,<br>a bus, a beach, and one last Palmera job.</h2>
+<div><button class="btn" id="btn-new">▶ New Game</button><button class="btn" id="btn-continue">Continue</button></div>
+<p class="small">WASD move • Mouse look (click to lock) • Shift sprint / nitro • E enter/exit car • Space handbrake<br>F punch • Click pistol • R reload • M mission • T taxi • L delivery • H race • P/Esc pause • Rain rolls in sometimes</p>
+<p class="small" id="start-save"></p></div>
+
+<div id="pause" class="screen" style="display:none"><h1>PAUSED</h1>
+<div class="legend panel"><b>Minimap legend</b><br>⚪ White arrow — you &nbsp; ⚫ Grey — traffic &nbsp; 🔵🔴 Flashing blue/red — police<br>🟡 Gold — mission &nbsp; 🟠 Orange — race checkpoint &nbsp; 🟢 Green — taxi passenger / destination<br>🟣 Purple — Marlin Freight delivery &nbsp; 🟠🔧 Wrench/orange — Tito's Garage &nbsp; ○ Pale dots — golden conches (10 hidden, $50 each)<br><br>
+<b>Port Solano</b>: complete M1–M6 for Rosa Delgado, visit Tito's Garage for respray/engine/armour/nitro, run taxi fares and Marlin Freight deliveries, find 10 conches.</div>
+<button class="btn" id="btn-resume">Resume</button></div>
+
+<div id="busted" class="screen" style="display:none"><h1 style="color:#7ab8ff">BUSTED</h1><h2>Police pinned you. Fine paid from your cash.</h2><button class="btn" id="btn-busted">Continue</button></div>
+<div id="wasted" class="screen" style="display:none"><h1 style="color:#ff5a4d">WASTED</h1><h2>Juno wakes up at the beach clinic. Fee paid.</h2><button class="btn" id="btn-wasted">Continue</button></div>
+<div id="storycomplete" class="screen" style="display:none"><h1>STORY COMPLETE</h1><h2>The Palmera Job is done.</h2><p style="font-size:20px;max-width:560px">Port Solano is yours — free roam, races, fares and deliveries continue.</p><button class="btn" id="btn-story">Keep Roaming</button></div>
+
+<div id="garage"><div class="card"><h2 style="margin:0;color:#ff9f1a">🔧 TITO'S GARAGE</h2><div id="garage-cash" style="margin:8px 0;font-weight:700"></div>
+<div><b>Respray — $100</b><div id="respray-row"></div></div>
+<div style="display:flex;flex-wrap:wrap;gap:6px"><button class="btn2" id="btn-engine"></button><button class="btn2" id="btn-armour"></button><button class="btn2" id="btn-nitro"></button></div>
+<p class="small">Upgrades stick to this car and are saved. Engine = faster, Armour = tougher, Nitro = hold Shift in the car.</p>
+<button class="btn" id="btn-garage-close">Leave Garage</button></div></div>
+
+<script src="vendor/three.min.js"></script>
+<script type="module" src="src/main.js"></script>
+</body></html>
